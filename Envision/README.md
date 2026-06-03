@@ -73,7 +73,7 @@ langevin:
   sample_count_K: 4
   eta_start: 1.0e-2
   eta_end: 1.0e-4
-  temperature_tau: 0.1
+  temperature_tau: 1.0
 
 prompt:
   prompt: ""

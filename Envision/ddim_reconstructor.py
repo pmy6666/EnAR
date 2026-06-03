@@ -32,7 +32,7 @@ class DDIMReconstructor:
     ) -> DDIMReconstructionOutput:
         timesteps = list(self.scheduler.timesteps)
         start_index = len(timesteps) - 1 - step_index_T
-        selected = timesteps[start_index:]
+        selected = timesteps[start_index:-1]
 
         latent = zT
         for timestep in selected:

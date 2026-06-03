@@ -43,7 +43,7 @@ class LangevinPerturber:
             noise = torch.randn(
                 latent.shape, generator=generator, device=latent.device, dtype=latent.dtype
             )
-            delta = eta * estimate.gradient + (eta * temperature_tau) ** 0.5 * noise
+            delta = eta * estimate.gradient + (2.0 * eta * temperature_tau) ** 0.5 * noise
             latent = latent + delta
             debug_steps.append(
                 {

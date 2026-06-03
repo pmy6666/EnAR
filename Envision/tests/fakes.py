@@ -35,12 +35,15 @@ class FakeScheduler:
     def __init__(self) -> None:
         self.alphas_cumprod = torch.linspace(1.0, 0.01, 1000)
         self.timesteps = torch.tensor([])
+        self.step_timesteps = []
 
     def set_timesteps(self, steps: int, device=None) -> None:
         self.timesteps = torch.linspace(999, 0, steps, dtype=torch.long, device=device)
+        self.step_timesteps = []
 
     def step(self, noise_pred: torch.Tensor, timestep, sample: torch.Tensor, eta: float = 0.0):
         t = int(timestep.detach().cpu().item()) if torch.is_tensor(timestep) else int(timestep)
+        self.step_timesteps.append(t)
         prev = sample - noise_pred * (1.0 / max(t + 1, 1))
         return SimpleNamespace(prev_sample=prev)
 
