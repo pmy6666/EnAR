@@ -1,0 +1,29 @@
+paths:
+  sd_model_dir: /home/qianustb/EnAR/pre_model/DDIM/stable-diffusion-v1-5
+  input_image: /home/qianustb/EnAR/Envision/image/data/wolf_5.png
+  output_dir: /home/qianustb/EnAR/outputs/envision/run_001
+
+image:
+  image_size: 512
+
+ddim:
+  num_ddim_steps: 50
+  inversion_step_T: 30
+  guidance_scale: 1.0
+
+langevin:
+  langevin_steps_M: 10
+  sample_count_K: 10
+  eta_start: 1.0e-2
+  eta_end: 1.0e-4
+  temperature_tau: 0.1
+
+prompt:
+  prompt: ""
+  negative_prompt: ""
+
+runtime:
+  seed: 42
+  dtype: float16
+  device: null
+  debug: false

@@ -1,0 +1,8 @@
+{
+  "backend": "modelscope",
+  "modelscope_model_id": "swift/llava-1.5-7b-hf",
+  "revision": "master",
+  "snapshot_path": "/home/qianustb/EnAR/pre_model/LLM/llava-1.5-7b-hf",
+  "target_dir": "/home/qianustb/EnAR/pre_model/LLM/llava-1.5-7b-hf",
+  "downloaded_at_utc": "2026-06-03T06:48:31.463764+00:00"
+}

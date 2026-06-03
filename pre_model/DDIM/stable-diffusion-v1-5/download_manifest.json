@@ -1,0 +1,8 @@
+{
+  "backend": "modelscope",
+  "modelscope_model_id": "AI-ModelScope/stable-diffusion-v1-5",
+  "revision": "master",
+  "snapshot_path": "/home/qianustb/EnAR/pre_model/DDIM/stable-diffusion-v1-5",
+  "target_dir": "/home/qianustb/EnAR/pre_model/DDIM/stable-diffusion-v1-5",
+  "downloaded_at_utc": "2026-06-03T02:27:06.495589+00:00"
+}

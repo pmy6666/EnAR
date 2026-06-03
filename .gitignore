@@ -1,0 +1,43 @@
+# Local environments
+env/
+.venv/
+venv/
+conda-env/
+
+# Python cache and build output
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime outputs
+outputs/
+work_scripts/test_DDIM/outputs/
+*.log
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Pretrained model weights and partial downloads
+*.safetensors
+*.ckpt
+*.bin
+*.pth
+*.pt
+*.onnx
+*.h5
+*.msgpack
+*.tflite
+*.part
+
+# Model download caches / transient marker files
+pre_model/**/.cache/
+pre_model/**/._____temp/
+pre_model/**/.msc
+pre_model/**/.mv
