@@ -146,7 +146,7 @@ def main() -> int:
     parser.add_argument("--generate", action="store_true", help="Run a tiny image generation smoke test.")
     parser.add_argument(
         "--prompt",
-        default="a high quality photo of a golden retriever dog sitting on green grass, natural daylight",
+        default="a photo of only a hand with six fingers, must six fingers and only one hand.",
     )
     parser.add_argument(
         "--negative_prompt",
@@ -166,7 +166,7 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("/home/qianustb/EnAR/work_scripts/test_DDIM/outputs/sd_v1_5_dog_test.png"),
+        default=Path("/home/qianustb/EnAR/work_scripts/test_DDIM/outputs/sd_v1_5_hand_test.png"),
     )
     args = parser.parse_args()
 

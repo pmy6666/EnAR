@@ -1,0 +1,25 @@
+paths:
+  llava_model_dir: EnAR/pre_model/LLM/llava-1.5-7b-hf
+  original_image: EnAR/outputs/envision/run_001/original.png
+  impression_image: EnAR/outputs/envision/run_001/impression.png
+  uncertainty_map: EnAR/outputs/envision/run_001/uncertainty_map.npy
+  envision_metadata: EnAR/outputs/envision/run_001/metadata.json
+  output_dir: EnAR/outputs/attend/run_001
+model:
+  vision_feature_select_strategy: full
+  num_additional_image_tokens: 1
+  device: auto
+  dtype: float16
+attention:
+  vision_layer_number: 6
+  attention_top_ratio: 0.10
+  uncertainty_top_ratio: 0.05
+  padding_ratio_limit: 0.10
+  uncertainty_weight: 1.0
+visualization:
+  save_raw_arrays: true
+  save_heatmaps: true
+  save_patch_overlay: true
+  save_mask_origin: true
+  mask_origin_mode: binary
+  mask_origin_alpha: 0.45

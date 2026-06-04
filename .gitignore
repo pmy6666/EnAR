@@ -18,6 +18,7 @@ dist/
 outputs/
 work_scripts/test_DDIM/outputs/
 *.log
+Envision/Attend, Then Respond_ Counterfactual Hallucination Mitigation in Large Vision-Language Models (CVPR 2026)论文复现与延伸思考.pdf
 
 # Editor and OS files
 .idea/
