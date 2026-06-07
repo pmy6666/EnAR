@@ -54,6 +54,8 @@ class StableDiffusionLoader:
 
         pipe = StableDiffusionPipeline.from_pretrained(str(self.model_dir), **kwargs)
         pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+        if not isinstance(pipe.scheduler, DDIMScheduler):
+            raise TypeError(f"Expected DDIMScheduler, got {type(pipe.scheduler).__name__}.")
         pipe = pipe.to(self.device)
         pipe.set_progress_bar_config(disable=True)
 

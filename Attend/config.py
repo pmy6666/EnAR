@@ -36,6 +36,7 @@ YAML_TO_FLAT_KEYS = {
         "save_heatmaps",
         "save_patch_overlay",
         "save_mask_origin",
+        "save_source_masks",
         "mask_origin_mode",
         "mask_origin_alpha",
     },
@@ -78,6 +79,7 @@ class AttendConfig:
     save_heatmaps: bool = True
     save_patch_overlay: bool = True
     save_mask_origin: bool = True
+    save_source_masks: bool = True
     mask_origin_mode: str = "binary"
     mask_origin_alpha: float = 0.45
 

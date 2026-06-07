@@ -1,0 +1,135 @@
+experiment:
+  name: vlmbias_llava15_7b_enar
+  run_name: run_001
+  seed: 42
+  output_dir: outputs/enar_eval/vlmbias
+  resume: true
+  overwrite: false
+  save_intermediate: false
+  dry_run: false
+
+dataset:
+  name: VLMBias
+  root_dir: toy_dataset/VLMBias
+  data_dir: toy_dataset/VLMBias/data
+  split: main
+  data_files:
+    main: data/main-*.parquet
+    identification: data/identification-*.parquet
+    withtitle: data/withtitle-*.parquet
+    original: data/original-*.parquet
+    remove_background_q1q2: data/remove_background_q1q2-*.parquet
+    remove_background_q3: data/remove_background_q3-*.parquet
+  filters:
+    max_samples: null
+    sample_ids: []
+    topics: []
+    sub_topics: []
+    type_of_question: []
+    with_title: null
+    pixel: null
+  image_export:
+    format: png
+    write_input_image: true
+
+models:
+  llava_model_dir: pre_model/LLM/llava-1.5-7b-hf
+  sd_model_dir: pre_model/DDIM/stable-diffusion-v1-5
+
+runtime:
+  device: auto
+  dtype: float16
+  num_workers: 1
+  fail_fast: false
+  log_interval: 1
+  torch_compile: false
+
+pipeline:
+  methods:
+    regular: true
+    enar: true
+  prompt:
+    question_field: prompt
+    envision_prompt: ""
+    negative_prompt: ""
+  stages:
+    envision:
+      enabled: true
+      image:
+        image_size: 512
+      ddim:
+        num_ddim_steps: 50
+        inversion_step_T: 30
+        guidance_scale: 1.0
+      langevin:
+        langevin_steps_M: 10
+        sample_count_K: 10
+        eta_start: 1.0e-3
+        eta_end: 1.0e-4
+        temperature_tau: 0.1
+      runtime:
+        debug: false
+    attend:
+      enabled: true
+      model:
+        vision_feature_select_strategy: default
+        num_additional_image_tokens: 1
+      attention:
+        vision_layer_number: 6
+        attention_top_ratio: 0.10
+        uncertainty_top_ratio: 0.05
+        padding_ratio_limit: 0.10
+        uncertainty_weight: 1.0
+      visualization:
+        save_raw_arrays: false
+        save_heatmaps: true
+        save_patch_overlay: true
+        save_mask_origin: true
+        save_source_masks: true
+        mask_origin_mode: binary
+        mask_origin_alpha: 0.45
+    respond:
+      enabled: true
+      generation:
+        max_new_tokens: 64
+        do_sample: true
+        temperature: 1.0
+        top_p: 1.0
+        seed: 42
+      contrastive:
+        alpha: 1.0
+        use_apc: true
+        apc_beta: 0.1
+        padding_strategy: zero_embedding
+        save_decode_trace: false
+      model:
+        vision_feature_select_strategy: default
+        num_additional_image_tokens: 1
+
+evaluation:
+  answer_normalization:
+    lowercase: true
+    strip_punctuation: true
+    strip_articles: true
+    number_word_to_digit: true
+    extract_first_number_for_counting: true
+  correctness:
+    mode: exact_or_numeric
+    count_questions_use_numeric_match: true
+    allow_ground_truth_aliases: true
+  dry_run_predictions:
+    strategy: bias_vs_ground_truth
+  metrics:
+    overall_accuracy: true
+    topic_accuracy: true
+    sub_topic_accuracy: true
+    question_type_accuracy: true
+    with_title_accuracy: true
+    expected_bias_rate: true
+    delta_vs_regular: true
+  reports:
+    save_predictions_jsonl: true
+    save_metrics_json: true
+    save_csv_tables: true
+    save_markdown_report: true
+    save_error_cases: true

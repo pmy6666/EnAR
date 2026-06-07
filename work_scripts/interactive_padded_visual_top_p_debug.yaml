@@ -1,0 +1,18 @@
+config: EnAR/Respond/respond_config.yaml
+preset: enar_paper
+question: How many legs does this wolf have?
+image_path: EnAR/outputs/envision/run_001/original.png
+attend_result_json: EnAR/outputs/attend/run_001/attend_result.json
+max_new_tokens: 64
+do_sample: false
+top_p: 1.0
+temperature: 1.0
+padding_strategy: pad_token_embedding
+device: auto
+dtype: float16
+vision_feature_select_strategy: default
+num_additional_image_tokens: 1
+limit: 80
+show_special: false
+force_greedy: true
+print_prompt_token_map: true

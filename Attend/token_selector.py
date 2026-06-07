@@ -16,6 +16,9 @@ class TokenSelectionResult:
     h_final: list[int]
     vision_token_indices: list[int]
     union_patch_mask_grid: np.ndarray
+    source_label_grid: np.ndarray
+    source_label_flat: np.ndarray
+    source_counts: dict[str, int]
     score: np.ndarray
 
 
@@ -64,6 +67,7 @@ class CounterfactualTokenSelector:
         grid_h, grid_w = infer_square_grid(num_patches)
         mask = np.zeros(num_patches, dtype=bool)
         mask[h_final] = True
+        source_label_flat, source_counts = build_source_label_mask(h_attn, h_unc, h_final, num_patches)
         offset = 1 if has_cls_token else 0
         return TokenSelectionResult(
             h_attn=sorted(h_attn),
@@ -72,6 +76,9 @@ class CounterfactualTokenSelector:
             h_final=h_final,
             vision_token_indices=[idx + offset for idx in h_final],
             union_patch_mask_grid=mask.reshape(grid_h, grid_w),
+            source_label_grid=source_label_flat.reshape(grid_h, grid_w),
+            source_label_flat=source_label_flat,
+            source_counts=source_counts,
             score=combined_score,
         )
 
@@ -79,3 +86,40 @@ class CounterfactualTokenSelector:
 def _topk_indices(values: np.ndarray, k: int) -> list[int]:
     order = np.argsort(-values, kind="stable")
     return [int(idx) for idx in order[:k]]
+
+
+def build_source_label_mask(
+    h_attn: list[int],
+    h_unc: list[int],
+    h_final: list[int],
+    num_patches: int,
+) -> tuple[np.ndarray, dict[str, int]]:
+    if num_patches <= 0:
+        raise ValueError("num_patches must be positive.")
+
+    attn_set = set(h_attn)
+    unc_set = set(h_unc)
+    labels = np.zeros(num_patches, dtype=np.uint8)
+    counts = {
+        "attention_only": 0,
+        "uncertainty_only": 0,
+        "attention_and_uncertainty": 0,
+        "selected_total": len(h_final),
+    }
+
+    for patch_idx in h_final:
+        if patch_idx < 0 or patch_idx >= num_patches:
+            raise ValueError(f"patch index out of range: {patch_idx}")
+        in_attn = patch_idx in attn_set
+        in_unc = patch_idx in unc_set
+        if in_attn and in_unc:
+            labels[patch_idx] = 3
+            counts["attention_and_uncertainty"] += 1
+        elif in_attn:
+            labels[patch_idx] = 1
+            counts["attention_only"] += 1
+        elif in_unc:
+            labels[patch_idx] = 2
+            counts["uncertainty_only"] += 1
+
+    return labels, counts

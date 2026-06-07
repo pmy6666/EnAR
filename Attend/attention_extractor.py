@@ -68,9 +68,12 @@ def attention_tensor_to_patch_scores(raw_attention: Any) -> tuple[np.ndarray, di
     has_cls_token = token_count == 577 or _is_square(token_count - 1)
     if has_cls_token:
         scores = mean_attention[0, 1:] # [tokens - 1]
+        extraction_strategy = "cls_to_patch"
     elif _is_square(token_count):
-        # Fallback when a caller provides patch-only attention.
-        scores = mean_attention.mean(axis=0)
+        # Fallback for vision encoders without a CLS token. This follows the
+        # paper's no-CLS case by aggregating incoming attention per token.
+        scores = mean_attention.sum(axis=0)
+        extraction_strategy = "incoming_attention_sum"
     else:
         raise ValueError(f"Cannot infer patch layout from token_count={token_count}.")
 
@@ -80,6 +83,12 @@ def attention_tensor_to_patch_scores(raw_attention: Any) -> tuple[np.ndarray, di
         "has_cls_token": bool(has_cls_token),
         "num_patches": int(scores.size),
         "patch_grid": [grid_side, grid_side],
+        "raw_attention_shape": [int(dim) for dim in attn_np.shape],
+        "attention_extraction_strategy": extraction_strategy,
+        "score_min": float(scores.min()),
+        "score_max": float(scores.max()),
+        "score_mean": float(scores.mean()),
+        "score_std": float(scores.std()),
     }
     return scores.astype(np.float32), meta
 

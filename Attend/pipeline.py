@@ -7,7 +7,7 @@ from pathlib import Path
 from .attention_extractor import VisionAttentionExtractor
 from .config import AttendConfig
 from .contrastive import ContrastiveAttentionComputer
-from .mask_mapper import MaskOriginMapper
+from .mask_mapper import MaskOriginMapper, SOURCE_LABEL_ENCODING
 from .model_loader import LlavaVisionLoader, read_vision_config
 from .output_writer import AttendOutputWriter
 from .preprocessor import LlavaImagePreprocessor
@@ -69,7 +69,9 @@ class AttendPipeline:
             prep.pixel_values_impression.to(dtype=components.dtype),
             self.config.vision_layer_number,
         )
-
+        # print("*" * 15)
+        # print(f"impression attention shape: {impression_attention.attention_scores.shape}")
+        # print("*" * 15)
         contrastive = ContrastiveAttentionComputer().compute(
             original_attention.attention_scores,
             impression_attention.attention_scores,
@@ -99,6 +101,10 @@ class AttendPipeline:
                 "uncertainty_patch_scores.npy",
                 uncertainty.patch_scores,
             )
+            array_paths["source_label_grid"] = writer.save_array(
+                "source_label_grid.npy",
+                selection.source_label_grid,
+            )
 
         visualizer = AttendVisualizer(
             self.config.output_dir,
@@ -107,6 +113,14 @@ class AttendPipeline:
         )
         image_paths = {}
         if self.config.save_heatmaps:
+            image_paths["original_attention_heatmap"] = visualizer.save_heatmap(
+                original_attention.attention_scores.reshape(components.patch_grid),
+                "original_attention_heatmap.png",
+            )
+            image_paths["counterfactual_attention_heatmap"] = visualizer.save_heatmap(
+                impression_attention.attention_scores.reshape(components.patch_grid),
+                "counterfactual_attention_heatmap.png",
+            )
             image_paths["contrastive_attention_heatmap"] = visualizer.save_heatmap(
                 contrastive.delta_grid,
                 "contrastive_attention_heatmap.png",
@@ -114,6 +128,10 @@ class AttendPipeline:
             image_paths["uncertainty_patch_heatmap"] = visualizer.save_heatmap(
                 uncertainty.patch_grid,
                 "uncertainty_patch_heatmap.png",
+            )
+            image_paths["fused_score_heatmap"] = visualizer.save_heatmap(
+                selection.score.reshape(components.patch_grid),
+                "fused_score_heatmap.png",
             )
         image_paths["selected_patch_mask"] = visualizer.save_selected_patch_mask(
             selection.union_patch_mask_grid
@@ -126,11 +144,22 @@ class AttendPipeline:
             )
             image_paths["patch_overlay"] = patch_overlay_path
 
-        mask_result = MaskOriginMapper(
+        source_label_paths = {}
+        if self.config.save_source_masks:
+            source_label_paths["patch_source_mask"] = visualizer.save_source_label_patch_mask(
+                selection.source_label_grid
+            )
+            source_label_paths["patch_source_overlay"] = visualizer.save_source_label_patch_overlay(
+                self.config.original_image,
+                selection.source_label_grid,
+            )
+
+        mask_mapper = MaskOriginMapper(
             patch_size=components.patch_size,
             vision_input_size=(components.image_size, components.image_size),
             alpha=self.config.mask_origin_alpha,
-        ).map_and_save(
+        )
+        mask_result = mask_mapper.map_and_save(
             selection.union_patch_mask_grid,
             self.config.original_image,
             prep.preprocess_meta,
@@ -140,6 +169,22 @@ class AttendPipeline:
         image_paths["mask_origin"] = mask_result.mask_origin_path
         if mask_result.mask_origin_overlay_path:
             image_paths["mask_origin_overlay"] = mask_result.mask_origin_overlay_path
+
+        label_mask_result = None
+        if self.config.save_source_masks:
+            label_mask_result = mask_mapper.map_label_and_save(
+                selection.source_label_grid,
+                self.config.original_image,
+                prep.preprocess_meta,
+                self.config.output_dir,
+                save_overlay=True,
+            )
+            source_label_paths["mask_origin_label"] = label_mask_result.label_mask_origin_path
+            source_label_paths["mask_origin_color"] = label_mask_result.label_mask_origin_color_path
+            if label_mask_result.label_mask_origin_overlay_path:
+                source_label_paths[
+                    "mask_origin_three_color_overlay"
+                ] = label_mask_result.label_mask_origin_overlay_path
 
         result_data = {
             "original_image": str(self.config.original_image),
@@ -155,14 +200,27 @@ class AttendPipeline:
             "h_union_raw_patch_indices": selection.h_union_raw,
             "selected_patch_indices": selection.h_final,
             "selected_vision_token_indices": selection.vision_token_indices,
+            "source_label_encoding": {str(k): v for k, v in SOURCE_LABEL_ENCODING.items()},
+            "source_counts": selection.source_counts,
+            "source_label_paths": source_label_paths,
             "mask_origin_path": mask_result.mask_origin_path,
             "mask_origin_overlay_path": mask_result.mask_origin_overlay_path,
             "mask_origin_mapping_meta": mask_result.meta,
+            "mask_origin_label_mapping_meta": label_mask_result.meta if label_mask_result else None,
             "attention_top_ratio": self.config.attention_top_ratio,
             "uncertainty_top_ratio": self.config.uncertainty_top_ratio,
             "padding_ratio_limit": self.config.padding_ratio_limit,
             "uncertainty_weight": self.config.uncertainty_weight,
+            "score_stats": {
+                "original_attention": _array_stats(original_attention.attention_scores),
+                "impression_attention": _array_stats(impression_attention.attention_scores),
+                "delta_attention": _array_stats(contrastive.delta_scores),
+                "uncertainty_patch": _array_stats(uncertainty.patch_scores),
+                "combined_selection_score": _array_stats(selection.score),
+            },
             "token_layout_meta": original_attention.token_layout_meta,
+            "impression_token_layout_meta": impression_attention.token_layout_meta,
+            "uncertainty_mapping_meta": uncertainty.meta,
             "preprocess_meta": prep.preprocess_meta,
             "array_paths": array_paths,
             "image_paths": image_paths,
@@ -185,3 +243,17 @@ def _load_json_safely(path: Path):
             return json.load(f)
     except Exception as exc:
         return {"load_error": str(exc)}
+
+
+def _array_stats(values) -> dict[str, float]:
+    import numpy as np
+
+    arr = np.asarray(values, dtype=np.float32).reshape(-1)
+    if arr.size == 0:
+        return {"min": 0.0, "max": 0.0, "mean": 0.0, "std": 0.0}
+    return {
+        "min": float(arr.min()),
+        "max": float(arr.max()),
+        "mean": float(arr.mean()),
+        "std": float(arr.std()),
+    }

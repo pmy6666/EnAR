@@ -21,5 +21,6 @@ visualization:
   save_heatmaps: true
   save_patch_overlay: true
   save_mask_origin: true
+  save_source_masks: true
   mask_origin_mode: binary
   mask_origin_alpha: 0.45

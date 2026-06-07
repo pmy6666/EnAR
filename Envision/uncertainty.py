@@ -12,6 +12,7 @@ class UncertaintyOutput:
     uncertainty_map: np.ndarray
     gray_image: Image.Image
     heatmap_image: Image.Image
+    meta: dict[str, float | list[int]]
 
 
 class UncertaintyEstimator:
@@ -26,7 +27,24 @@ class UncertaintyEstimator:
         normalized = self._normalize(var_map) # [0, 1]
         gray = Image.fromarray((normalized * 255.0).round().astype(np.uint8), mode="L") # [0, 255]
         heatmap = self._to_heatmap(normalized) 
-        return UncertaintyOutput(var_map.astype(np.float32), gray, heatmap)
+        return UncertaintyOutput(
+            var_map.astype(np.float32),
+            gray,
+            heatmap,
+            {
+                "sample_count": int(stack.shape[0]),
+                "height": int(stack.shape[1]),
+                "width": int(stack.shape[2]),
+                "raw_min": float(var_map.min()),
+                "raw_max": float(var_map.max()),
+                "raw_mean": float(var_map.mean()),
+                "raw_std": float(var_map.std()),
+                "normalized_min": float(normalized.min()),
+                "normalized_max": float(normalized.max()),
+                "normalized_mean": float(normalized.mean()),
+                "normalized_std": float(normalized.std()),
+            },
+        )
 
     @staticmethod
     def _normalize(array: np.ndarray) -> np.ndarray:

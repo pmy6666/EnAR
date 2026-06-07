@@ -68,6 +68,7 @@ visualization:
   save_heatmaps: true
   save_patch_overlay: true
   save_mask_origin: true
+  save_source_masks: true
   mask_origin_mode: binary
   mask_origin_alpha: 0.45
 ```
@@ -107,11 +108,28 @@ contrastive_attention_heatmap.png
 uncertainty_patch_scores.npy
 uncertainty_patch_heatmap.png
 selected_patch_mask.png
+selected_patch_source_mask.png
 mask_origin.png
+mask_origin_label.png
+mask_origin_color.png
 mask_origin_overlay.png
+mask_origin_three_color_overlay.png
 patch_overlay.png
+patch_source_overlay.png
+source_label_grid.npy
 attend_result.json
 ```
+
+三色 source mask 的 label 约定：
+
+```text
+0 = background
+1 = attention only，红色 #FF3030
+2 = uncertainty only，蓝色 #2F80FF
+3 = attention and uncertainty，黄色 #FFD23F
+```
+
+旧的二值输出仍保留：`selected_patch_mask.png`、`patch_overlay.png`、`mask_origin.png` 和 `mask_origin_overlay.png` 继续表示最终被 pad 的 union 区域。三色输出只用于 debug 和人工检查来源。
 
 `attend_result.json` 中同时保存纯 patch index 和包含 CLS 偏移的 vision token index：
 
@@ -119,6 +137,12 @@ attend_result.json
 {
   "selected_patch_indices": [0, 1],
   "selected_vision_token_indices": [1, 2],
+  "source_counts": {
+    "attention_only": 1,
+    "uncertainty_only": 0,
+    "attention_and_uncertainty": 1,
+    "selected_total": 2
+  },
   "mask_origin_path": ".../mask_origin.png",
   "patch_grid": [24, 24],
   "patch_size": 14
@@ -135,7 +159,7 @@ PYTHONPATH=/home/qianustb/EnAR \
 /home/qianustb/EnAR/env/bin/python -m pytest Attend/tests
 ```
 
-这些测试覆盖配置解析、attention tensor 转 patch score、contrastive attention、不确定性 patch pooling、token 选择、mask 回映射和可视化文件输出。
+这些测试覆盖配置解析、attention tensor 转 patch score、contrastive attention、不确定性 patch pooling、token 选择、三色 source label、mask 回映射和可视化文件输出。
 
 ## 注意事项
 

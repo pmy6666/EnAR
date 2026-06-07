@@ -185,9 +185,9 @@ def main() -> int:
     parser.add_argument(
         "--image",
         type=Path,
-        default=Path("/home/qianustb/EnAR/work_scripts/test_DDIM/outputs/sd_v1_5_dog_test.png"),
+        default=Path("/home/qianustb/EnAR/outputs/envision/run_001/reconstruction_no_perturb.png"),
     )
-    parser.add_argument("--prompt", default="这个图片里面是什么？")
+    parser.add_argument("--prompt", default="这个狼有几条腿？")
     parser.add_argument("--max_new_tokens", type=int, default=64)
     parser.add_argument(
         "--vision_feature_select_strategy",

@@ -16,9 +16,20 @@ dist/
 
 # Runtime outputs
 outputs/
+**/outputs/
 work_scripts/test_DDIM/outputs/
 *.log
 Envision/Attend, Then Respond_ Counterfactual Hallucination Mitigation in Large Vision-Language Models (CVPR 2026)论文复现与延伸思考.pdf
+*.pdf
+
+# Local datasets / downloaded benchmark caches
+toy_dataset/
+
+# External VCD checkout; keep only local EnAR reproduction scripts.
+VCD/*
+!VCD/my_work/
+!VCD/my_work/**
+VCD/my_work/outputs/
 
 # Editor and OS files
 .idea/

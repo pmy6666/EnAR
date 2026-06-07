@@ -83,6 +83,7 @@ class EnvisionPipeline:
         sample_images = []
         sample_debug = []
         for sample_idx in range(self.config.sample_count_K):
+            sample_seed = self.config.seed + sample_idx
             perturbed = perturber.perturb(
                 inversion.zT,
                 inversion.timestep_T,
@@ -92,7 +93,7 @@ class EnvisionPipeline:
                 self.config.eta_start,
                 self.config.eta_end,
                 self.config.temperature_tau,
-                self.config.seed + sample_idx,
+                sample_seed,
             )
             reconstructed = reconstructor.reconstruct(
                 perturbed.latent,
@@ -101,7 +102,14 @@ class EnvisionPipeline:
                 embeddings.negative_text_embeddings,
             )
             sample_images.append(reconstructed.image)
-            sample_debug.append({"sample_index": sample_idx, "langevin_steps": perturbed.debug_steps})
+            sample_debug.append(
+                {
+                    "sample_index": sample_idx,
+                    "seed": sample_seed,
+                    "latent_l2_from_zT": _tensor_l2(perturbed.latent - inversion.zT),
+                    "langevin_steps": perturbed.debug_steps,
+                }
+            )
 
         uncertainty = UncertaintyEstimator().estimate(sample_images)
         selector = RepresentativeSelector()
@@ -126,10 +134,20 @@ class EnvisionPipeline:
             "transform_meta": prep.transform_meta,
             "device": str(components.device),
             "runtime_dtype": str(components.dtype),
+            "scheduler_meta": {
+                "class_name": type(components.scheduler).__name__,
+                "num_train_timesteps": int(getattr(components.scheduler.config, "num_train_timesteps", 0)),
+                "beta_schedule": getattr(components.scheduler.config, "beta_schedule", None),
+                "prediction_type": getattr(components.scheduler.config, "prediction_type", None),
+                "steps_offset": getattr(components.scheduler.config, "steps_offset", None),
+                "set_alpha_to_one": getattr(components.scheduler.config, "set_alpha_to_one", None),
+            },
             "timestep_T": inversion.timestep_T,
             "step_index_T": inversion.step_index_T,
             "representative_index": representative.index,
             "sample_diff_scores": representative.diff_scores,
+            "sample_diff_stats": _stats(representative.diff_scores),
+            "uncertainty_stats": uncertainty.meta,
             "sample_debug": sample_debug,
             "reconstruction_no_perturb": str(no_perturb_path),
             "outputs": image_paths,
@@ -144,3 +162,21 @@ class EnvisionPipeline:
             uncertainty_heatmap_path=image_paths["uncertainty_heatmap"],
             metadata_path=str(metadata_path),
         )
+
+
+def _tensor_l2(tensor) -> float:
+    return float(tensor.detach().float().norm().cpu())
+
+
+def _stats(values: list[float]) -> dict[str, float]:
+    if not values:
+        return {"min": 0.0, "max": 0.0, "mean": 0.0, "std": 0.0}
+    import numpy as np
+
+    arr = np.asarray(values, dtype=np.float32)
+    return {
+        "min": float(arr.min()),
+        "max": float(arr.max()),
+        "mean": float(arr.mean()),
+        "std": float(arr.std()),
+    }

@@ -1,0 +1,23 @@
+paths:
+  llava_model_dir: EnAR/pre_model/LLM/llava-1.5-7b-hf
+  image_path: EnAR/outputs/pipeline/run_001/envision/original.png
+  attend_result_json: EnAR/outputs/pipeline/run_001/attend/attend_result.json
+  output_dir: EnAR/outputs/respond/run_001
+generation:
+  question: How many legs does this animal have?
+  max_new_tokens: 64
+  do_sample: true
+  temperature: 1.0
+  top_p: 1.0
+  seed: 42
+contrastive:
+  alpha: 1.0
+  use_apc: true
+  apc_beta: 0.1
+  padding_strategy: zero_embedding
+  save_decode_trace: true
+model:
+  device: auto
+  dtype: float16
+  vision_feature_select_strategy: default
+  num_additional_image_tokens: 1

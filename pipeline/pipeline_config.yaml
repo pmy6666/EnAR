@@ -1,0 +1,69 @@
+paths:
+  input_image: EnAR/Envision/image/data/wolf_5.png
+  output_dir: outputs/pipeline
+  sd_model_dir: pre_model/DDIM/stable-diffusion-v1-5
+  llava_model_dir: pre_model/LLM/llava-1.5-7b-hf
+
+prompt:
+  question: How many legs does this animal have?
+  envision_prompt: ""
+  negative_prompt: ""
+
+runtime:
+  run_name: run_001
+  device: auto
+  dtype: float16
+  seed: 42
+
+stages:
+  envision:
+    image:
+      image_size: 512
+    ddim:
+      num_ddim_steps: 50
+      inversion_step_T: 30
+      guidance_scale: 1.0
+    langevin:
+      langevin_steps_M: 20
+      sample_count_K: 10
+      eta_start: 1.0e-3
+      eta_end: 1.0e-4
+      temperature_tau: 0.1
+    runtime:
+      debug: false
+
+  attend:
+    model:
+      vision_feature_select_strategy: default
+      num_additional_image_tokens: 1
+    attention:
+      vision_layer_number: 6
+      attention_top_ratio: 0.10
+      uncertainty_top_ratio: 0.05
+      padding_ratio_limit: 0.10
+      uncertainty_weight: 1.0
+    visualization:
+      save_raw_arrays: true
+      save_heatmaps: true
+      save_patch_overlay: true
+      save_mask_origin: true
+      save_source_masks: true
+      mask_origin_mode: binary
+      mask_origin_alpha: 0.45
+
+  respond:
+    generation:
+      max_new_tokens: 64
+      do_sample: true
+      temperature: 1.0
+      top_p: 1.0
+      seed: 42
+    contrastive:
+      alpha: 1.0
+      use_apc: true
+      apc_beta: 0.1
+      padding_strategy: zero_embedding
+      save_decode_trace: true
+    model:
+      vision_feature_select_strategy: default
+      num_additional_image_tokens: 1
