@@ -35,7 +35,7 @@ REQUIRED_COLUMNS = {
 class VLMBiasSample:
     sample_id: str
     raw_id: str
-    split: str
+    subset: str
     image: Any
     image_path: str
     topic: str
@@ -53,7 +53,8 @@ class VLMBiasSample:
         return {
             "sample_id": self.sample_id,
             "raw_id": self.raw_id,
-            "split": self.split,
+            "subset": self.subset,
+            "split": self.subset,
             "image_path": self.image_path,
             "topic": self.topic,
             "sub_topic": self.sub_topic,
@@ -97,7 +98,7 @@ def load_vlmbias_samples(config: DatasetConfig) -> tuple[list[VLMBiasSample], di
             VLMBiasSample(
                 sample_id=sample_id,
                 raw_id=raw_id,
-                split=config.split,
+                subset=config.subset,
                 image=row.get("image"),
                 image_path=_stringify(row.get("image_path")),
                 topic=_stringify(row.get("topic")),
@@ -115,10 +116,12 @@ def load_vlmbias_samples(config: DatasetConfig) -> tuple[list[VLMBiasSample], di
 
     manifest = {
         "dataset": config.name,
-        "split": config.split,
+        "subset": config.subset,
+        "split": config.subset,
         "files": [str(path) for path in files],
         "num_rows_before_filter": original_count,
         "num_rows_after_filter": len(samples),
+        "categories": config.categories,
         "filters": {
             "max_samples": config.filters.max_samples,
             "sample_ids": config.filters.sample_ids,
@@ -133,16 +136,16 @@ def load_vlmbias_samples(config: DatasetConfig) -> tuple[list[VLMBiasSample], di
 
 
 def resolve_data_files(config: DatasetConfig) -> list[Path]:
-    pattern = config.data_files.get(config.split)
+    pattern = config.data_files.get(config.subset)
     if not pattern:
-        raise ValueError(f"Unknown VLMBias split '{config.split}'. Known splits: {sorted(config.data_files)}")
+        raise ValueError(f"Unknown VLMBias subset '{config.subset}'. Known subsets: {sorted(config.data_files)}")
     base = config.root_dir if not Path(pattern).is_absolute() else Path("/")
     matches = sorted(Path(path) for path in glob.glob(str(base / pattern)))
     if not matches:
-        data_pattern = config.data_dir / f"{config.split}-*.parquet"
+        data_pattern = config.data_dir / f"{config.subset}-*.parquet"
         matches = sorted(Path(path) for path in glob.glob(str(data_pattern)))
     if not matches:
-        raise FileNotFoundError(f"No parquet files found for split '{config.split}' with pattern '{pattern}'")
+        raise FileNotFoundError(f"No parquet files found for subset '{config.subset}' with pattern '{pattern}'")
     return matches
 
 

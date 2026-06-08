@@ -22,6 +22,7 @@ from .uncertainty import UncertaintyEstimator
 @dataclass
 class EnvisionResult:
     original_image_path: str
+    preprocessed_image_path: str
     impression_image_path: str
     uncertainty_map_path: str
     uncertainty_heatmap_path: str
@@ -36,7 +37,11 @@ class EnvisionPipeline:
         self.config.validate()
         started = time.time()
 
-        preprocessor = ImagePreprocessor(self.config.image_size)
+        preprocessor = ImagePreprocessor(
+            self.config.image_size,
+            preprocess_mode=self.config.preprocess_mode,
+            pad_color=self.config.pad_color,
+        )
         prep = preprocessor.run(self.config.input_image)
         original_image = ImageOps.exif_transpose(Image.open(self.config.input_image)).convert("RGB")
 
@@ -157,6 +162,7 @@ class EnvisionPipeline:
 
         return EnvisionResult(
             original_image_path=image_paths["original_image"],
+            preprocessed_image_path=image_paths["preprocessed_image"],
             impression_image_path=image_paths["impression_image"],
             uncertainty_map_path=image_paths["uncertainty_map"],
             uncertainty_heatmap_path=image_paths["uncertainty_heatmap"],

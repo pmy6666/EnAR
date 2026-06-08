@@ -123,22 +123,28 @@ class MaskOriginMapper:
         vision_image = Image.fromarray(vision_mask, mode="L").resize((input_w, input_h), Image.Resampling.NEAREST)
 
         original_w, original_h = original_size
-        crop_box = preprocess_meta.get("crop_box_original")
-        if crop_box is None:
-            crop = min(original_w, original_h)
-            crop_box = [
-                max((original_w - crop) / 2.0, 0.0),
-                max((original_h - crop) / 2.0, 0.0),
-                max((original_w - crop) / 2.0, 0.0) + crop,
-                max((original_h - crop) / 2.0, 0.0) + crop,
-            ]
-
-        left, top, right, bottom = crop_box
-        crop_w = max(1, int(round(right - left)))
-        crop_h = max(1, int(round(bottom - top)))
-        crop_mask = vision_image.resize((crop_w, crop_h), Image.Resampling.NEAREST)
+        content_box = preprocess_meta.get("content_box_target")
+        if content_box is not None and preprocess_meta.get("geometry") == "resize_keep_aspect_then_pad":
+            left, top, right, bottom = [int(round(float(v))) for v in content_box]
+            content = vision_image.crop((left, top, right, bottom))
+            crop_mask = content.resize((original_w, original_h), Image.Resampling.NEAREST)
+            crop_box = [0.0, 0.0, float(original_w), float(original_h)]
+        else:
+            crop_box = preprocess_meta.get("crop_box_original")
+            if crop_box is None:
+                crop = min(original_w, original_h)
+                crop_box = [
+                    max((original_w - crop) / 2.0, 0.0),
+                    max((original_h - crop) / 2.0, 0.0),
+                    max((original_w - crop) / 2.0, 0.0) + crop,
+                    max((original_h - crop) / 2.0, 0.0) + crop,
+                ]
+            left, top, right, bottom = crop_box
+            crop_w = max(1, int(round(right - left)))
+            crop_h = max(1, int(round(bottom - top)))
+            crop_mask = vision_image.resize((crop_w, crop_h), Image.Resampling.NEAREST)
         canvas = Image.new("L", (original_w, original_h), 0)
-        canvas.paste(crop_mask, (int(round(left)), int(round(top))))
+        canvas.paste(crop_mask, (int(round(crop_box[0])), int(round(crop_box[1]))))
         mask = np.asarray(canvas, dtype=np.uint8)
         meta = {
             "original_size": [int(original_w), int(original_h)],
@@ -146,7 +152,8 @@ class MaskOriginMapper:
             "patch_grid": list(patch_mask.shape),
             "patch_size": int(self.patch_size),
             "crop_box_original": [float(v) for v in crop_box],
-            "mapping_assumption": preprocess_meta.get("mapping_assumption", "center_crop_then_resize"),
+            "content_box_target": [float(v) for v in content_box] if content_box is not None else None,
+            "mapping_assumption": preprocess_meta.get("geometry", preprocess_meta.get("mapping_assumption", "center_crop_then_resize")),
         }
         return mask, meta
 
@@ -169,22 +176,28 @@ class MaskOriginMapper:
         )
 
         original_w, original_h = original_size
-        crop_box = preprocess_meta.get("crop_box_original")
-        if crop_box is None:
-            crop = min(original_w, original_h)
-            crop_box = [
-                max((original_w - crop) / 2.0, 0.0),
-                max((original_h - crop) / 2.0, 0.0),
-                max((original_w - crop) / 2.0, 0.0) + crop,
-                max((original_h - crop) / 2.0, 0.0) + crop,
-            ]
-
-        left, top, right, bottom = crop_box
-        crop_w = max(1, int(round(right - left)))
-        crop_h = max(1, int(round(bottom - top)))
-        crop_mask = vision_image.resize((crop_w, crop_h), Image.Resampling.NEAREST)
+        content_box = preprocess_meta.get("content_box_target")
+        if content_box is not None and preprocess_meta.get("geometry") == "resize_keep_aspect_then_pad":
+            left, top, right, bottom = [int(round(float(v))) for v in content_box]
+            content = vision_image.crop((left, top, right, bottom))
+            crop_mask = content.resize((original_w, original_h), Image.Resampling.NEAREST)
+            crop_box = [0.0, 0.0, float(original_w), float(original_h)]
+        else:
+            crop_box = preprocess_meta.get("crop_box_original")
+            if crop_box is None:
+                crop = min(original_w, original_h)
+                crop_box = [
+                    max((original_w - crop) / 2.0, 0.0),
+                    max((original_h - crop) / 2.0, 0.0),
+                    max((original_w - crop) / 2.0, 0.0) + crop,
+                    max((original_h - crop) / 2.0, 0.0) + crop,
+                ]
+            left, top, right, bottom = crop_box
+            crop_w = max(1, int(round(right - left)))
+            crop_h = max(1, int(round(bottom - top)))
+            crop_mask = vision_image.resize((crop_w, crop_h), Image.Resampling.NEAREST)
         canvas = Image.new("L", (original_w, original_h), 0)
-        canvas.paste(crop_mask, (int(round(left)), int(round(top))))
+        canvas.paste(crop_mask, (int(round(crop_box[0])), int(round(crop_box[1]))))
         label_mask = np.asarray(canvas, dtype=np.uint8)
         _validate_source_labels(label_mask)
         meta = {
@@ -193,7 +206,8 @@ class MaskOriginMapper:
             "patch_grid": list(label_grid.shape),
             "patch_size": int(self.patch_size),
             "crop_box_original": [float(v) for v in crop_box],
-            "mapping_assumption": preprocess_meta.get("mapping_assumption", "center_crop_then_resize"),
+            "content_box_target": [float(v) for v in content_box] if content_box is not None else None,
+            "mapping_assumption": preprocess_meta.get("geometry", preprocess_meta.get("mapping_assumption", "center_crop_then_resize")),
             "source_label_encoding": {str(k): v for k, v in SOURCE_LABEL_ENCODING.items()},
         }
         return label_mask, meta

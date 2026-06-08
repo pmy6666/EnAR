@@ -1,10 +1,12 @@
 paths:
   sd_model_dir: /home/qianustb/EnAR/pre_model/DDIM/stable-diffusion-v1-5
-  input_image: /home/qianustb/EnAR/Envision/image/data/wolf_5.png
-  output_dir: /home/qianustb/EnAR/outputs/envision/run_001
+  input_image: /home/qianustb/EnAR/Envision/image/data/llama.png
+  output_dir: /home/qianustb/EnAR/outputs/envision/run_003
 
 image:
   image_size: 512
+  preprocess_mode: pad
+  pad_color: [127, 127, 127]
 
 ddim:
   num_ddim_steps: 50
@@ -14,9 +16,9 @@ ddim:
 langevin:
   langevin_steps_M: 10
   sample_count_K: 10
-  eta_start: 1.0e-3
+  eta_start: 1.0e-2
   eta_end: 1.0e-4
-  temperature_tau: 0.05
+  temperature_tau: 0.1
 
 prompt:
   prompt: ""

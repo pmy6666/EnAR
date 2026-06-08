@@ -22,21 +22,21 @@ class LlavaImagePreprocessor:
         self.image_size = image_size
 
     def run(self, original_image: str | Path, impression_image: str | Path) -> LlavaPreprocessResult:
-        original = ImageOps.exif_transpose(Image.open(original_image)).convert("RGB")
+        processed = ImageOps.exif_transpose(Image.open(original_image)).convert("RGB")
         impression = ImageOps.exif_transpose(Image.open(impression_image)).convert("RGB")
-        original_inputs = self._process_image(original)
+        original_inputs = self._process_image(processed)
         impression_inputs = self._process_image(impression)
         pixel_values_original = original_inputs["pixel_values"]
         pixel_values_impression = impression_inputs["pixel_values"]
         meta = build_center_crop_preprocess_meta(
-            original.size,
+            processed.size,
             self._infer_input_size(pixel_values_original),
             image_processor=getattr(self.processor, "image_processor", None),
         )
         return LlavaPreprocessResult(
             pixel_values_original=pixel_values_original,
             pixel_values_impression=pixel_values_impression,
-            original_image=original,
+            original_image=processed,
             impression_image=impression,
             preprocess_meta=meta,
         )

@@ -1,6 +1,6 @@
 paths:
   llava_model_dir: EnAR/pre_model/LLM/llava-1.5-7b-hf
-  image_path: EnAR/outputs/pipeline/run_001/envision/original.png
+  image_path: EnAR/outputs/pipeline/run_001/envision/preprocessed.png
   attend_result_json: EnAR/outputs/pipeline/run_001/attend/attend_result.json
   output_dir: EnAR/outputs/respond/run_001
 generation:

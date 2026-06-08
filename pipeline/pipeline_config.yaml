@@ -19,6 +19,8 @@ stages:
   envision:
     image:
       image_size: 512
+      preprocess_mode: pad
+      pad_color: [127, 127, 127]
     ddim:
       num_ddim_steps: 50
       inversion_step_T: 30

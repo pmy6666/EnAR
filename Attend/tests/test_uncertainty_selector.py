@@ -1,7 +1,7 @@
 import numpy as np
 
 from Attend.token_selector import CounterfactualTokenSelector
-from Attend.uncertainty_mapper import UncertaintyPatchMapper
+from Attend.uncertainty_mapper import UncertaintyPatchMapper, project_envision_map_to_llava_input
 
 
 def test_uncertainty_mapper_pools_to_patch_grid():
@@ -10,6 +10,28 @@ def test_uncertainty_mapper_pools_to_patch_grid():
     result = UncertaintyPatchMapper(image_size=8, patch_size=4).map_array(arr)
     assert result.patch_grid.shape == (2, 2)
     np.testing.assert_allclose(result.patch_grid, [[1, 0], [0, 0]], atol=1 / 255)
+
+
+def test_uncertainty_projection_ignores_envision_padding():
+    arr = np.zeros((8, 8), dtype=np.float32)
+    arr[2:6, :] = 1.0
+    projected = project_envision_map_to_llava_input(
+        arr,
+        {
+            "original_size": [8, 4],
+            "target_size": [8, 8],
+            "geometry": "resize_keep_aspect_then_pad",
+            "content_box_target": [0, 2, 8, 6],
+        },
+        {
+            "original_size": [8, 4],
+            "vision_input_size": [4, 4],
+            "geometry": "center_crop_then_resize",
+            "crop_box_original": [2, 0, 6, 4],
+        },
+    )
+    assert projected.shape == (4, 4)
+    np.testing.assert_allclose(projected, np.ones((4, 4), dtype=np.float32), atol=1e-6)
 
 
 def test_token_selector_merges_and_respects_padding_limit():

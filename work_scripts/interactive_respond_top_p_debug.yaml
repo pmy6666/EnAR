@@ -1,7 +1,7 @@
 config: EnAR/Respond/respond_config.yaml
 preset: enar_paper
 question: How many legs does this wolf have?
-image_path: EnAR/outputs/envision/run_001/original.png
+image_path: EnAR/outputs/envision/run_001/preprocessed.png
 attend_result_json: EnAR/outputs/attend/run_001/attend_result.json
 max_new_tokens: 64
 do_sample: false

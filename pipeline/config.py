@@ -115,6 +115,10 @@ class EnARPipelineConfig:
                     "input_image": str(self.input_image),
                     "output_dir": str(self.envision_output_dir),
                 },
+                "image": {
+                    "preprocess_mode": "pad",
+                    "pad_color": [127, 127, 127],
+                },
                 "prompt": {
                     "prompt": self.envision_prompt,
                     "negative_prompt": self.negative_prompt,
@@ -132,7 +136,7 @@ class EnARPipelineConfig:
             {
                 "paths": {
                     "llava_model_dir": str(self.llava_model_dir),
-                    "original_image": str(envision_config.output_dir / "original.png"),
+                    "original_image": str(envision_config.output_dir / "preprocessed.png"),
                     "impression_image": str(envision_config.output_dir / "impression.png"),
                     "uncertainty_map": str(envision_config.output_dir / "uncertainty_map.npy"),
                     "envision_metadata": str(envision_config.output_dir / "metadata.json"),
@@ -152,7 +156,7 @@ class EnARPipelineConfig:
             {
                 "paths": {
                     "llava_model_dir": str(self.llava_model_dir),
-                    "image_path": str(self.envision_output_dir / "original.png"),
+                    "image_path": str(self.envision_output_dir / "preprocessed.png"),
                     "attend_result_json": str(attend_config.output_dir / "attend_result.json"),
                     "output_dir": str(self.respond_output_dir),
                 },

@@ -7,7 +7,7 @@ from typing import Any
 
 
 DEFAULT_MODEL_DIR = Path("EnAR/pre_model/LLM/llava-1.5-7b-hf")
-DEFAULT_IMAGE = Path("EnAR/outputs/envision/run_001/original.png")
+DEFAULT_IMAGE = Path("EnAR/outputs/envision/run_001/preprocessed.png")
 DEFAULT_PROMPT = "How many legs does this wolf have?"
 DEFAULT_SCRIPT_CONFIG = Path("EnAR/work_scripts/llava_only_interactive_top_p_debug.yaml")
 

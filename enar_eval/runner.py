@@ -48,7 +48,7 @@ class VLMBiasEvalRunner:
                 self._cleanup_sample_intermediates(self._sample_dir(sample))
             records.append(record)
 
-        metrics = build_metrics(records, dataset=self.config.dataset.name, split=self.config.dataset.split)
+        metrics = build_metrics(records, dataset=self.config.dataset.name, split=self.config.dataset.subset)
         metrics["elapsed_seconds"] = round(time.time() - started, 4)
         metrics["config_hash"] = self.config_hash
         write_reports(run_dir, records, metrics)

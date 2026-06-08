@@ -14,6 +14,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output_dir", type=Path)
     parser.add_argument("--sd_model_dir", type=Path)
     parser.add_argument("--image_size", type=int)
+    parser.add_argument("--preprocess_mode", choices=["pad", "center_crop"])
+    parser.add_argument("--pad_color", type=int, nargs=3, metavar=("R", "G", "B"))
     parser.add_argument("--num_ddim_steps", type=int)
     parser.add_argument("--inversion_step_T", type=int)
     parser.add_argument("--langevin_steps_M", type=int)

@@ -59,6 +59,7 @@ class AttendPipeline:
             components.processor,
             image_size=components.image_size,
         ).run(self.config.original_image, self.config.impression_image)
+        envision_metadata = _load_json_safely(self.config.envision_metadata) if self.config.envision_metadata else None
 
         extractor = VisionAttentionExtractor(components.vision_tower, components.device)
         original_attention = extractor.extract(
@@ -79,7 +80,11 @@ class AttendPipeline:
         uncertainty = UncertaintyPatchMapper(
             image_size=components.image_size,
             patch_size=components.patch_size,
-        ).map_file(self.config.uncertainty_map)
+        ).map_file_with_geometry(
+            self.config.uncertainty_map,
+            envision_metadata,
+            prep.preprocess_meta,
+        )
         selection = CounterfactualTokenSelector().select(
             contrastive.delta_scores,
             uncertainty.patch_scores,
@@ -226,7 +231,7 @@ class AttendPipeline:
             "image_paths": image_paths,
         }
         if self.config.envision_metadata:
-            result_data["envision_metadata_content"] = _load_json_safely(self.config.envision_metadata)
+            result_data["envision_metadata_content"] = envision_metadata
         result_json = writer.save_result_json(result_data)
         return AttendResult(
             selected_patch_indices=selection.h_final,

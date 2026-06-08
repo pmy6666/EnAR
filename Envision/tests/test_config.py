@@ -32,6 +32,8 @@ paths:
   output_dir: {out}
 image:
   image_size: 128
+  preprocess_mode: pad
+  pad_color: [127, 127, 127]
 ddim:
   num_ddim_steps: 20
   inversion_step_T: 8
@@ -56,6 +58,8 @@ runtime:
     cfg = EnvisionConfig.from_yaml(yaml_path)
     cfg.validate()
     assert cfg.image_size == 128
+    assert cfg.preprocess_mode == "pad"
+    assert cfg.pad_color == (127, 127, 127)
     assert cfg.seed == 7
     assert cfg.to_yaml_dict()["paths"]["input_image"].endswith("in.png")
 

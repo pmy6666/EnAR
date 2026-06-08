@@ -27,6 +27,26 @@ def test_mask_origin_mapper_outputs_original_size(tmp_path: Path):
     assert Path(result.mask_origin_overlay_path).is_file()
 
 
+def test_mask_origin_mapper_supports_pad_content_box(tmp_path: Path):
+    image_path = tmp_path / "original.png"
+    Image.new("RGB", (8, 4), "white").save(image_path)
+    patch_mask = np.ones((2, 2), dtype=bool)
+    result = MaskOriginMapper(patch_size=4, vision_input_size=(8, 8)).map_and_save(
+        patch_mask,
+        image_path,
+        {
+            "vision_input_size": [8, 8],
+            "geometry": "resize_keep_aspect_then_pad",
+            "content_box_target": [0, 2, 8, 6],
+        },
+        tmp_path,
+    )
+    assert result.mask_origin.shape == (4, 8)
+    assert result.meta["crop_box_original"] == [0.0, 0.0, 8.0, 4.0]
+    assert result.meta["content_box_target"] == [0.0, 2.0, 8.0, 6.0]
+    assert result.mask_origin.min() == 255
+
+
 def test_mask_origin_mapper_outputs_label_masks(tmp_path: Path):
     image_path = tmp_path / "original.png"
     Image.new("RGB", (80, 40), "white").save(image_path)

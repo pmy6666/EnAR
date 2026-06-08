@@ -18,7 +18,7 @@ YAML_SECTION_KEYS = {
 
 YAML_TO_FLAT_KEYS = {
     "paths": {"sd_model_dir", "input_image", "output_dir"},
-    "image": {"image_size"},
+    "image": {"image_size", "preprocess_mode", "pad_color"},
     "ddim": {"num_ddim_steps", "inversion_step_T", "guidance_scale"},
     "langevin": {"langevin_steps_M", "sample_count_K", "eta_start", "eta_end", "temperature_tau"},
     "prompt": {"prompt", "negative_prompt"},
@@ -38,6 +38,8 @@ class EnvisionConfig:
     input_image: Optional[Path] = None
     output_dir: Optional[Path] = None
     image_size: int = 512
+    preprocess_mode: str = "pad"
+    pad_color: tuple[int, int, int] = (127, 127, 127)
     num_ddim_steps: int = 50
     inversion_step_T: int = 30
     langevin_steps_M: int = 10
@@ -57,6 +59,7 @@ class EnvisionConfig:
         self.sd_model_dir = Path(self.sd_model_dir)
         self.input_image = Path(self.input_image) if self.input_image is not None else None
         self.output_dir = Path(self.output_dir) if self.output_dir is not None else None
+        self.pad_color = tuple(int(value) for value in self.pad_color)
 
     @classmethod
     def from_file(cls, path: str | Path) -> "EnvisionConfig":
@@ -110,6 +113,12 @@ class EnvisionConfig:
             raise FileNotFoundError(f"sd_model_dir does not exist: {self.sd_model_dir}")
         if self.image_size <= 0:
             raise ValueError("image_size must be positive.")
+        if self.preprocess_mode not in {"pad", "center_crop"}:
+            raise ValueError("preprocess_mode must be one of: pad, center_crop.")
+        if len(self.pad_color) != 3:
+            raise ValueError("pad_color must contain three RGB values.")
+        if not all(0 <= int(value) <= 255 for value in self.pad_color):
+            raise ValueError("pad_color values must be in [0, 255].")
         if self.num_ddim_steps <= 0:
             raise ValueError("num_ddim_steps must be positive.")
         if not 0 <= self.inversion_step_T <= self.num_ddim_steps:
@@ -123,6 +132,7 @@ class EnvisionConfig:
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
+        data["pad_color"] = list(self.pad_color)
         for key in ("sd_model_dir", "input_image", "output_dir"):
             if data[key] is not None:
                 data[key] = str(data[key])

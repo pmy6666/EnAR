@@ -1,6 +1,6 @@
 experiment:
   name: vlmbias_llava15_7b_enar
-  run_name: run_001
+  run_name: run_Logos
   seed: 42
   output_dir: outputs/enar_eval/vlmbias
   resume: true
@@ -12,7 +12,13 @@ dataset:
   name: VLMBias
   root_dir: toy_dataset/VLMBias
   data_dir: toy_dataset/VLMBias/data
-  split: main
+  # VLMBias subset to evaluate:
+  # main, identification, withtitle, original,
+  # remove_background_q1q2, remove_background_q3
+  subset: main
+  # Optional VLMBias topic/category filter.
+  # Examples: [Animals], [Logos], [Animals, Logos], ["Optical Illusion"]
+  categories: [Logos]
   data_files:
     main: data/main-*.parquet
     identification: data/identification-*.parquet
@@ -23,6 +29,7 @@ dataset:
   filters:
     max_samples: null
     sample_ids: []
+    # Backward-compatible alias for dataset.categories.
     topics: []
     sub_topics: []
     type_of_question: []
@@ -57,6 +64,8 @@ pipeline:
       enabled: true
       image:
         image_size: 512
+        preprocess_mode: pad
+        pad_color: [127, 127, 127]
       ddim:
         num_ddim_steps: 50
         inversion_step_T: 30
@@ -64,7 +73,7 @@ pipeline:
       langevin:
         langevin_steps_M: 10
         sample_count_K: 10
-        eta_start: 1.0e-3
+        eta_start: 1.0e-2
         eta_end: 1.0e-4
         temperature_tau: 0.1
       runtime:

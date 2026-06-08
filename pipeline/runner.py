@@ -53,6 +53,7 @@ class EnARPipeline:
             "run_output_dir": str(run_dir),
             "envision": {
                 "original_image_path": envision_result.original_image_path,
+                "preprocessed_image_path": envision_result.preprocessed_image_path,
                 "impression_image_path": envision_result.impression_image_path,
                 "uncertainty_map_path": envision_result.uncertainty_map_path,
                 "uncertainty_heatmap_path": envision_result.uncertainty_heatmap_path,

@@ -27,6 +27,33 @@ class UncertaintyPatchMapper:
     def map_file(self, path: str | Path) -> UncertaintyPatchResult:
         return self.map_array(load_uncertainty_map(path))
 
+    def map_file_with_geometry(
+        self,
+        path: str | Path,
+        envision_meta: dict | None,
+        llava_preprocess_meta: dict | None,
+    ) -> UncertaintyPatchResult:
+        array = load_uncertainty_map(path)
+        if not envision_meta or not llava_preprocess_meta:
+            return self.map_array(array)
+        transform_meta = envision_meta.get("transform_meta", {})
+        if _llava_input_is_envision_processed_image(transform_meta, llava_preprocess_meta):
+            projected = _original_map_to_llava_input(array, llava_preprocess_meta)
+            alignment = "envision_processed_map_to_llava_input"
+        else:
+            projected = project_envision_map_to_llava_input(
+                array,
+                transform_meta,
+                llava_preprocess_meta,
+            )
+            alignment = "envision_map_to_original_to_llava_input"
+        result = self.map_array(projected)
+        result.meta["geometry_alignment"] = alignment
+        result.meta["projected_shape"] = [int(projected.shape[0]), int(projected.shape[1])]
+        result.meta["envision_geometry"] = transform_meta.get("geometry")
+        result.meta["llava_geometry"] = llava_preprocess_meta.get("geometry")
+        return result
+
     def map_array(self, uncertainty_map: np.ndarray) -> UncertaintyPatchResult:
         array = np.asarray(uncertainty_map, dtype=np.float32)
         if array.ndim == 3:
@@ -80,6 +107,106 @@ def load_uncertainty_map(path: str | Path) -> np.ndarray:
         return np.load(path)
     image = ImageOps.exif_transpose(Image.open(path)).convert("L")
     return np.asarray(image, dtype=np.float32) / 255.0
+
+
+def project_envision_map_to_llava_input(
+    uncertainty_map: np.ndarray,
+    envision_transform_meta: dict,
+    llava_preprocess_meta: dict,
+) -> np.ndarray:
+    array = np.asarray(uncertainty_map, dtype=np.float32)
+    if array.ndim == 3:
+        array = array.mean(axis=2)
+    if array.ndim != 2:
+        raise ValueError(f"uncertainty_map must be 2D or image-like 3D, got {array.shape}.")
+
+    original_w, original_h = _original_size(envision_transform_meta, llava_preprocess_meta)
+    origin_map = _envision_map_to_original(array, envision_transform_meta, original_w, original_h)
+    return _original_map_to_llava_input(origin_map, llava_preprocess_meta)
+
+
+def _envision_map_to_original(
+    array: np.ndarray,
+    transform_meta: dict,
+    original_w: int,
+    original_h: int,
+) -> np.ndarray:
+    geometry = transform_meta.get("geometry")
+    if geometry == "resize_keep_aspect_then_pad" and "content_box_target" in transform_meta:
+        left, top, right, bottom = [int(round(float(v))) for v in transform_meta["content_box_target"]]
+        left = max(0, min(left, array.shape[1]))
+        right = max(left + 1, min(right, array.shape[1]))
+        top = max(0, min(top, array.shape[0]))
+        bottom = max(top + 1, min(bottom, array.shape[0]))
+        content = array[top:bottom, left:right]
+        return np.asarray(
+            Image.fromarray(content, mode="F").resize((original_w, original_h), Image.Resampling.BILINEAR),
+            dtype=np.float32,
+        )
+
+    crop_box = transform_meta.get("crop_box_original")
+    if crop_box is None:
+        crop = min(original_w, original_h)
+        crop_box = [
+            max((original_w - crop) / 2.0, 0.0),
+            max((original_h - crop) / 2.0, 0.0),
+            max((original_w - crop) / 2.0, 0.0) + crop,
+            max((original_h - crop) / 2.0, 0.0) + crop,
+        ]
+    left, top, right, bottom = [int(round(float(v))) for v in crop_box]
+    crop_w = max(1, right - left)
+    crop_h = max(1, bottom - top)
+    crop_map = Image.fromarray(array, mode="F").resize((crop_w, crop_h), Image.Resampling.BILINEAR)
+    canvas = Image.new("F", (original_w, original_h), 0.0)
+    canvas.paste(crop_map, (left, top))
+    return np.asarray(canvas, dtype=np.float32)
+
+
+def _original_map_to_llava_input(origin_map: np.ndarray, preprocess_meta: dict) -> np.ndarray:
+    input_w, input_h = _input_size(preprocess_meta)
+    crop_box = preprocess_meta.get("crop_box_original")
+    if crop_box is None:
+        original_h, original_w = origin_map.shape
+        crop = min(original_w, original_h)
+        crop_box = [
+            max((original_w - crop) / 2.0, 0.0),
+            max((original_h - crop) / 2.0, 0.0),
+            max((original_w - crop) / 2.0, 0.0) + crop,
+            max((original_h - crop) / 2.0, 0.0) + crop,
+        ]
+    left, top, right, bottom = [int(round(float(v))) for v in crop_box]
+    left = max(0, min(left, origin_map.shape[1] - 1))
+    right = max(left + 1, min(right, origin_map.shape[1]))
+    top = max(0, min(top, origin_map.shape[0] - 1))
+    bottom = max(top + 1, min(bottom, origin_map.shape[0]))
+    cropped = origin_map[top:bottom, left:right]
+    return np.asarray(
+        Image.fromarray(cropped, mode="F").resize((input_w, input_h), Image.Resampling.BILINEAR),
+        dtype=np.float32,
+    )
+
+
+def _original_size(envision_meta: dict, llava_meta: dict) -> tuple[int, int]:
+    value = envision_meta.get("original_size") or llava_meta.get("original_size")
+    if not value:
+        raise ValueError("original_size is required for geometry-aware uncertainty mapping.")
+    return int(value[0]), int(value[1])
+
+
+def _input_size(preprocess_meta: dict) -> tuple[int, int]:
+    value = preprocess_meta.get("vision_input_size", [336, 336])
+    return int(value[0]), int(value[1])
+
+
+def _llava_input_is_envision_processed_image(envision_meta: dict, llava_meta: dict) -> bool:
+    target_size = envision_meta.get("target_size")
+    llava_original_size = llava_meta.get("original_size")
+    if not target_size or not llava_original_size:
+        return False
+    return [int(target_size[0]), int(target_size[1])] == [
+        int(llava_original_size[0]),
+        int(llava_original_size[1]),
+    ]
 
 
 def _minmax_normalize_float(array: np.ndarray) -> np.ndarray:

@@ -12,7 +12,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, required=True, help="Evaluation YAML config.")
     parser.add_argument("--dry-run", action="store_true", help="Use deterministic fake predictions to validate IO and metrics.")
     parser.add_argument("--max-samples", type=int, default=None, help="Override dataset.filters.max_samples.")
-    parser.add_argument("--split", type=str, default=None, help="Override dataset split.")
+    parser.add_argument("--subset", type=str, default=None, help="Override VLMBias subset, e.g. main, identification, withtitle.")
+    parser.add_argument("--split", type=str, default=None, help="Deprecated alias for --subset.")
+    parser.add_argument(
+        "--category",
+        "--categories",
+        dest="categories",
+        action="append",
+        default=None,
+        help="Filter VLMBias topic/category. Can be passed multiple times, e.g. --category Animals --category Logos.",
+    )
     parser.add_argument("--run-name", type=str, default=None, help="Override experiment.run_name.")
     parser.add_argument("--overwrite", action="store_true", help="Recompute samples even when result.json exists.")
     parser.add_argument("--no-resume", action="store_true", help="Disable resume cache lookup.")
@@ -26,8 +35,14 @@ def main() -> int:
         config.experiment.dry_run = True
     if args.max_samples is not None:
         config.dataset.filters.max_samples = args.max_samples
-    if args.split:
-        config.dataset.split = args.split
+    if args.subset and args.split and args.subset != args.split:
+        raise ValueError(f"--subset and --split are aliases but differ: {args.subset!r} != {args.split!r}")
+    subset_override = args.subset or args.split
+    if subset_override:
+        config.dataset.subset = subset_override
+    if args.categories:
+        config.dataset.categories = args.categories
+        config.dataset.filters.topics = args.categories
     if args.run_name:
         config.experiment.run_name = args.run_name
     if args.overwrite:

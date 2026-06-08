@@ -5,7 +5,7 @@
 ## 模块说明
 
 - `config.py`：读取分组式 YAML 配置，并生成统一的 `EnvisionConfig` 对象。
-- `preprocessor.py`：读取 RGB 图像，执行中心裁剪、resize，并归一化到 `[-1, 1]`。
+- `preprocessor.py`：读取 RGB 图像，默认执行等比例缩放 + padding 到正方形，并归一化到 `[-1, 1]`。
 - `model_loader.py`：从本地加载 Stable Diffusion v1.5，并显式替换为 `DDIMScheduler`。
 - `prompt_conditioner.py`：生成空 prompt 或固定 prompt 的 text embedding。
 - `latent_codec.py`：使用 VAE 完成图像 latent 编码和 latent 解码，并处理 SD latent scaling。
@@ -62,6 +62,8 @@ paths:
 
 image:
   image_size: 512
+  preprocess_mode: pad
+  pad_color: [127, 127, 127]
 
 ddim:
   num_ddim_steps: 50
@@ -73,7 +75,7 @@ langevin:
   sample_count_K: 4
   eta_start: 1.0e-2
   eta_end: 1.0e-4
-  temperature_tau: 1.0
+  temperature_tau: 0.1
 
 prompt:
   prompt: ""
@@ -89,6 +91,8 @@ runtime:
 说明：
 
 - `inversion_step_T` 表示 DDIM 推理 schedule 中的第几个 step，不是训练时间步 `30`。
+- `preprocess_mode: pad` 表示保留完整图像内容，先等比例缩放再居中 padding 到 `512 x 512`。
+- `pad_color` 是 padding 区域的 RGB 颜色，默认使用中性灰 `[127, 127, 127]`。
 - CUDA 下建议使用 `dtype: float16`。
 - CPU 下请使用 `dtype: float32`。
 - `sample_count_K` 越大，不确定性估计越稳定，但显存和耗时也会增加。
@@ -140,7 +144,7 @@ output_dir/
 其中：
 
 - `original.png`：原始输入图像。
-- `preprocessed.png`：进入 SD 前的 512 尺寸预处理图像。
+- `preprocessed.png`：进入 SD 前的 512 尺寸预处理图像，默认包含等比例缩放后的完整图像和 padding 区域。
 - `impression.png`：代表性视觉印象。
 - `difference.png`：预处理图像与代表性视觉印象的差异图。
 - `reconstruction_no_perturb.png`：不加 Langevin 扰动的 DDIM 重建图，用于 sanity check。
@@ -148,7 +152,7 @@ output_dir/
 - `uncertainty_gray.png`：灰度不确定性图。
 - `uncertainty_heatmap.png`：伪彩色不确定性热力图。
 - `samples/`：所有采样视觉印象。
-- `metadata.json`：记录配置、尺寸变换、扰动 timestep、代表样本 index、L2 差异分数、Langevin 调试 norm 和输出路径。
+- `metadata.json`：记录配置、尺寸变换、padding/content box、扰动 timestep、代表样本 index、L2 差异分数、Langevin 调试 norm 和输出路径。
 
 Attend 阶段建议直接读取 `metadata.json` 中的：
 

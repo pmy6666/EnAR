@@ -47,7 +47,7 @@ Attend/
 ```yaml
 paths:
   llava_model_dir: EnAR/pre_model/LLM/llava-1.5-7b-hf
-  original_image: EnAR/outputs/envision/demo/original.png
+  original_image: EnAR/outputs/envision/demo/preprocessed.png
   impression_image: EnAR/outputs/envision/demo/impression.png
   uncertainty_map: EnAR/outputs/envision/demo/uncertainty_map.npy
   envision_metadata: EnAR/outputs/envision/demo/metadata.json
@@ -165,4 +165,4 @@ PYTHONPATH=/home/qianustb/EnAR \
 
 - `vision_layer_number` 使用论文自然层号，`6` 表示第 6 层；代码内部转换为 0-based index `5`。
 - LLaVA/CLIP vision encoder 常见 token 数为 `577 = 1 CLS + 576 patch`，输出 JSON 中的 `selected_vision_token_indices` 默认是 `patch_index + 1`。
-- 当前 `mask_origin.png` 回映射采用 LLaVA/CLIP 默认 center-crop 近似假设，并在 `attend_result.json` 的 `mask_origin_mapping_meta` 中记录。后续如果 Envision metadata 提供更精确几何信息，可以在 `MaskOriginMapper` 中扩展精确逆变换。
+- 当前 Attend 的基准图像建议使用 Envision 输出的 `preprocessed.png`，与 `impression.png` 和 `uncertainty_map.npy` 保持同一视觉坐标系。`mask_origin.png` 回映射采用 LLaVA/CLIP 默认 center-crop 近似假设，并在 `attend_result.json` 的 `mask_origin_mapping_meta` 中记录。

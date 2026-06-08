@@ -51,6 +51,7 @@ def copy_artifacts(
     artifacts: dict[str, str] = {}
     fixed = {
         "original_image": envision_dir / "original.png",
+        "processed_image": envision_dir / "preprocessed.png",
         "representative_impression": envision_dir / "impression.png",
         "uncertainty_heatmap": envision_dir / "uncertainty_heatmap.png",
         "difference_image": envision_dir / "difference.png",

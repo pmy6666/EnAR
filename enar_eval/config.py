@@ -37,7 +37,8 @@ class DatasetConfig:
     name: str = "VLMBias"
     root_dir: Path = Path("toy_dataset/VLMBias")
     data_dir: Path = Path("toy_dataset/VLMBias/data")
-    split: str = "main"
+    subset: str = "main"
+    categories: list[str] = field(default_factory=list)
     data_files: dict[str, str] = field(default_factory=lambda: {
         "main": "data/main-*.parquet",
         "identification": "data/identification-*.parquet",
@@ -95,11 +96,15 @@ class EvalConfig:
         runtime_data = _mapping(data.get("runtime", {}), "runtime")
 
         filters = DatasetFilters(**_mapping(dataset_data.get("filters", {}), "dataset.filters"))
+        categories = _string_list(dataset_data.get("categories", []), "dataset.categories")
+        filters.topics = _merge_unique(categories, filters.topics)
+        subset = _resolve_dataset_subset(dataset_data)
         dataset = DatasetConfig(
             name=str(dataset_data.get("name", "VLMBias")),
             root_dir=resolve_path(dataset_data.get("root_dir", "toy_dataset/VLMBias"), project_root),
             data_dir=resolve_path(dataset_data.get("data_dir", "toy_dataset/VLMBias/data"), project_root),
-            split=str(dataset_data.get("split", "main")),
+            subset=subset,
+            categories=categories,
             data_files=dict(dataset_data.get("data_files") or DatasetConfig().data_files),
             filters=filters,
             image_export=dict(dataset_data.get("image_export") or DatasetConfig().image_export),
@@ -159,7 +164,9 @@ class EvalConfig:
                 "name": self.dataset.name,
                 "root_dir": str(self.dataset.root_dir),
                 "data_dir": str(self.dataset.data_dir),
-                "split": self.dataset.split,
+                "subset": self.dataset.subset,
+                "split": self.dataset.subset,
+                "categories": self.dataset.categories,
                 "data_files": self.dataset.data_files,
                 "filters": {
                     "max_samples": self.dataset.filters.max_samples,
@@ -226,3 +233,35 @@ def _mapping(value: Any, name: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise TypeError(f"{name} must be a mapping.")
     return value
+
+
+def _resolve_dataset_subset(dataset_data: dict[str, Any]) -> str:
+    subset = dataset_data.get("subset")
+    split = dataset_data.get("split")
+    if subset is not None and split is not None and str(subset) != str(split):
+        raise ValueError(
+            "dataset.subset and dataset.split refer to the same VLMBias parquet subset; "
+            f"got conflicting values subset={subset!r}, split={split!r}."
+        )
+    return str(subset if subset is not None else split if split is not None else "main")
+
+
+def _string_list(value: Any, name: str) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if not isinstance(value, list):
+        raise TypeError(f"{name} must be a string or a list of strings.")
+    return [str(item) for item in value]
+
+
+def _merge_unique(first: list[str], second: list[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for item in [*first, *second]:
+        key = item.lower()
+        if key not in seen:
+            merged.append(item)
+            seen.add(key)
+    return merged

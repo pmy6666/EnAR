@@ -1,10 +1,10 @@
 paths:
   llava_model_dir: EnAR/pre_model/LLM/llava-1.5-7b-hf
-  original_image: EnAR/outputs/envision/run_001/original.png
-  impression_image: EnAR/outputs/envision/run_001/impression.png
-  uncertainty_map: EnAR/outputs/envision/run_001/uncertainty_map.npy
-  envision_metadata: EnAR/outputs/envision/run_001/metadata.json
-  output_dir: EnAR/outputs/attend/run_001
+  original_image: EnAR/outputs/envision/run_002/preprocessed.png
+  impression_image: EnAR/outputs/envision/run_002/impression.png
+  uncertainty_map: EnAR/outputs/envision/run_002/uncertainty_map.npy
+  envision_metadata: EnAR/outputs/envision/run_002/metadata.json
+  output_dir: EnAR/outputs/attend/run_002
 model:
   vision_feature_select_strategy: full
   num_additional_image_tokens: 1

@@ -1,5 +1,5 @@
 model_dir: EnAR/pre_model/LLM/llava-1.5-7b-hf
-image: EnAR/outputs/envision/run_001/original.png
+image: EnAR/outputs/envision/run_001/preprocessed.png
 prompt: How many legs does this wolf have?
 prompt_is_formatted: false
 max_new_tokens: 64

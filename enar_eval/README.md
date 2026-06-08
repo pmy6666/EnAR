@@ -33,11 +33,24 @@ Dry run writes deterministic placeholder predictions: Regular uses `expected_bia
 ## Useful Overrides
 
 ```bash
-# Evaluate a different split
+# Evaluate a different VLMBias subset
 PYTHONPATH=/home/qianustb/EnAR ./env/bin/python -m enar_eval.cli \
   --config enar_eval/vlmbias_eval_config.yaml \
-  --split identification \
+  --subset identification \
   --max-samples 5
+
+# Evaluate one VLMBias category/topic
+PYTHONPATH=/home/qianustb/EnAR ./env/bin/python -m enar_eval.cli \
+  --config enar_eval/vlmbias_eval_config.yaml \
+  --category Animals \
+  --run-name animals_run
+
+# Evaluate multiple categories
+PYTHONPATH=/home/qianustb/EnAR ./env/bin/python -m enar_eval.cli \
+  --config enar_eval/vlmbias_eval_config.yaml \
+  --category Animals \
+  --category Logos \
+  --run-name animals_logos_run
 
 # Force recomputation of cached samples
 PYTHONPATH=/home/qianustb/EnAR ./env/bin/python -m enar_eval.cli \
@@ -71,6 +84,69 @@ Default key files when `experiment.save_intermediate: false`:
 - `report.md`: human-readable summary.
 
 When `experiment.save_intermediate: true`, each sample also keeps the exported `input.png`, generated `pipeline_config.yaml`, and full `pipeline/` directory with Envision, Attend, and Respond artifacts for visualization and debugging.
+
+## VLMBias Subsets
+
+Choose the VLMBias parquet subset with `dataset.subset` in YAML:
+
+```yaml
+dataset:
+  subset: main
+```
+
+Available local subsets:
+
+- `main`
+- `identification`
+- `withtitle`
+- `original`
+- `remove_background_q1q2`
+- `remove_background_q3`
+
+The CLI override is:
+
+```bash
+PYTHONPATH=/home/qianustb/EnAR ./env/bin/python -m enar_eval.cli \
+  --config enar_eval/vlmbias_eval_config.yaml \
+  --subset withtitle \
+  --run-name withtitle_smoke \
+  --max-samples 5
+```
+
+`--split` and `dataset.split` are still accepted as backward-compatible aliases, but `subset` is the recommended name.
+
+## VLMBias Categories
+
+Filter categories such as `Animals` or `Logos` with `dataset.categories`:
+
+```yaml
+dataset:
+  subset: main
+  categories:
+    - Animals
+    - Logos
+```
+
+Available `main` categories:
+
+- `Animals`
+- `Chess Pieces`
+- `Flags`
+- `Game Boards`
+- `Logos`
+- `Optical Illusion`
+- `Patterned Grid`
+
+The CLI override is:
+
+```bash
+PYTHONPATH=/home/qianustb/EnAR ./env/bin/python -m enar_eval.cli \
+  --config enar_eval/vlmbias_eval_config.yaml \
+  --category Animals \
+  --run-name animals_run
+```
+
+`dataset.filters.topics` still works as a backward-compatible alias, but `dataset.categories` is the clearer option.
 
 ## Metrics
 

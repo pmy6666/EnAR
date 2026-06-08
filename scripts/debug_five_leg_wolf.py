@@ -85,6 +85,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--attend-dir", type=Path, default=PROJECT_ROOT / "outputs/attend/run_001")
     parser.add_argument("--respond-dir", type=Path, default=PROJECT_ROOT / "outputs/respond/run_001")
     parser.add_argument("--k", type=int, default=10)
+    parser.add_argument("--preprocess-mode", choices=["pad", "center_crop"], default="pad")
+    parser.add_argument("--pad-color", type=int, nargs=3, default=[127, 127, 127], metavar=("R", "G", "B"))
     parser.add_argument("--num-ddim-steps", type=int, default=50)
     parser.add_argument("--inversion-step-T", type=int, default=30)
     parser.add_argument("--langevin-steps", type=int, default=10)
@@ -121,6 +123,8 @@ def run_stages(args: argparse.Namespace, output_dir: Path) -> dict[str, Path]:
             inversion_step_T=args.inversion_step_T,
             langevin_steps_M=args.langevin_steps,
             sample_count_K=args.k,
+            preprocess_mode=args.preprocess_mode,
+            pad_color=tuple(args.pad_color),
             eta_start=args.eta_start,
             eta_end=args.eta_end,
             temperature_tau=args.tau,
@@ -131,7 +135,7 @@ def run_stages(args: argparse.Namespace, output_dir: Path) -> dict[str, Path]:
 
     attend_config = AttendConfig(
         llava_model_dir=args.llava_model_dir,
-        original_image=envision_dir / "original.png",
+        original_image=envision_dir / "preprocessed.png",
         impression_image=envision_dir / "impression.png",
         uncertainty_map=envision_dir / "uncertainty_map.npy",
         envision_metadata=envision_dir / "metadata.json",
@@ -148,7 +152,7 @@ def run_stages(args: argparse.Namespace, output_dir: Path) -> dict[str, Path]:
 
     respond_config = RespondConfig(
         llava_model_dir=args.llava_model_dir,
-        image_path=envision_dir / "original.png",
+        image_path=envision_dir / "preprocessed.png",
         attend_result_json=attend_dir / "attend_result.json",
         output_dir=respond_dir,
         question=args.question,
@@ -184,7 +188,7 @@ def run_attend_ablation(args: argparse.Namespace, envision_dir: Path, output_dir
                     run_dir = ablation_root / f"layer_{layer:02d}_{mode}_a{top_ratio:g}_u{unc_ratio:g}"
                     config = AttendConfig(
                         llava_model_dir=args.llava_model_dir,
-                        original_image=envision_dir / "original.png",
+                        original_image=envision_dir / "preprocessed.png",
                         impression_image=envision_dir / "impression.png",
                         uncertainty_map=envision_dir / "uncertainty_map.npy",
                         envision_metadata=envision_dir / "metadata.json",
@@ -229,6 +233,7 @@ def ablation_row(mode: str, layer: int, attention_top_ratio: float, uncertainty_
 
 def collect_visual_debug(envision_dir: Path, attend_dir: Path, respond_dir: Path, output_dir: Path) -> None:
     copy_named(envision_dir / "original.png", output_dir / "original.png")
+    copy_named(envision_dir / "preprocessed.png", output_dir / "processed.png")
     copy_named(envision_dir / "impression.png", output_dir / "representative_impression.png")
     copy_named(envision_dir / "uncertainty_heatmap.png", output_dir / "uncertainty_heatmap.png")
     copy_named(attend_dir / "original_attention_heatmap.png", output_dir / "original_attention_heatmap.png")
@@ -240,7 +245,7 @@ def collect_visual_debug(envision_dir: Path, attend_dir: Path, respond_dir: Path
     copy_named(respond_dir / "answer_regular.txt", output_dir / "baseline_answer.txt")
     copy_named(respond_dir / "answer_enar.txt", output_dir / "final_answer.txt")
 
-    original = output_dir / "original.png"
+    original = output_dir / "processed.png"
     heatmap = output_dir / "uncertainty_heatmap.png"
     if original.is_file() and heatmap.is_file():
         save_overlay(original, heatmap, output_dir / "uncertainty_overlay.png")
@@ -508,7 +513,7 @@ def build_static_summary(envision_dir: Path, attend_dir: Path, respond_dir: Path
 
 
 def write_visual_impression_metrics(envision_dir: Path, output_dir: Path) -> None:
-    original_path = envision_dir / "original.png"
+    original_path = envision_dir / "preprocessed.png"
     sample_paths = sorted((envision_dir / "samples").glob("sample_*.png"))
     if not original_path.is_file() or not sample_paths:
         return
